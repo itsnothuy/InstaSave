@@ -26,19 +26,27 @@ Your Instagram downloader is now **live on GitHub** and ready for deployment! He
 3. Build settings: `npm run build`, Publish: `.next`
 4. Deploy!
 
-## 🔧 Option 2: Enable Real Instagram API
+## 🔧 Option 2: Enable Real Instagram API (Updated Dec 2024)
 
-To download actual Instagram content, follow these steps:
+⚠️ **IMPORTANT**: Instagram Basic Display API was deprecated. We now use **Instagram API with Instagram Login**.
 
-### Step 1: Create Instagram App (10 minutes)
+**Prerequisites**: You need an **Instagram Business/Creator account** connected to a Facebook Page.
+
+### Step 1: Create Instagram App (15 minutes)
 1. **Go to [Facebook for Developers](https://developers.facebook.com/)**
-2. **Create App** → Consumer type
-3. **Add Instagram Basic Display** product
+2. **Create App** → **Business** type (required!)
+3. **Add Instagram** product → **"API setup with Instagram login"**
 4. **Configure OAuth settings**:
    ```
    Valid OAuth Redirect URIs:
    http://localhost:3000/auth/callback
    https://your-domain.vercel.app/auth/callback
+   
+   Deauthorize Callback URL:
+   https://your-domain.vercel.app/auth/deauthorize
+   
+   Data Deletion Request URL:
+   https://your-domain.vercel.app/auth/delete
    ```
 
 ### Step 2: Get Your Credentials
@@ -46,7 +54,12 @@ After creating the app, you'll get:
 - Instagram App ID: `1234567890123456`
 - Instagram App Secret: `abcdef1234567890abcdef1234567890`
 
-### Step 3: Add Environment Variables
+### Step 3: Add App Roles (Important!)
+1. **Go to App Roles → Roles**
+2. **Add your Instagram account** as Developer/Tester
+3. **Use Professional Instagram accounts only** (Business/Creator)
+
+### Step 4: Add Environment Variables
 In your deployment platform (Vercel/Netlify):
 
 ```env
@@ -54,11 +67,12 @@ INSTAGRAM_APP_ID=your_actual_app_id_here
 INSTAGRAM_APP_SECRET=your_actual_app_secret_here
 INSTAGRAM_REDIRECT_URI=https://your-domain.vercel.app/auth/callback
 NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+INSTAGRAM_GRAPH_API_VERSION=v19.0
 NODE_ENV=production
 ```
 
-### Step 4: Redeploy
-After adding environment variables, redeploy your app. It will automatically use real Instagram API!
+### Step 5: Redeploy
+After adding environment variables, redeploy your app. It will automatically use the new Instagram API!
 
 ## 🎯 Features Available
 
@@ -69,12 +83,13 @@ After adding environment variables, redeploy your app. It will automatically use
 - Mobile responsive design
 - Fast performance
 
-### 🔓 With Real API Setup
-- Download actual Instagram posts, reels, videos
-- OAuth login with Instagram
-- Access your own private content  
-- Real Instagram media metadata
-- High-quality original downloads
+### 🔓 With Real API Setup (Updated!)
+- **Download actual Instagram posts, reels, videos** (Business/Creator accounts)
+- **OAuth login with Instagram** (new secure flow)
+- **Access your own content** through Graph API
+- **Long-lived tokens** (60 days, auto-refreshing)
+- **High-quality original downloads** including carousel posts
+- **Support for Business/Creator features**
 
 ## 🌐 Live Demo Features
 

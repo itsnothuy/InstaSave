@@ -6,18 +6,18 @@
 
 import { InstagramMedia, InstagramPost, ResolverOptions, ApiResponse } from '@/types';
 
-// Instagram API Configuration
+// Instagram API Configuration (Updated for Instagram API with Instagram Login)
 const INSTAGRAM_CONFIG = {
-  // Basic Display API
-  BASIC_DISPLAY_API_URL: 'https://graph.instagram.com',
-  OAUTH_URL: 'https://api.instagram.com/oauth/authorize',
-  TOKEN_URL: 'https://api.instagram.com/oauth/access_token',
-  
-  // Graph API  
+  // Instagram Graph API (replaces Basic Display API)
   GRAPH_API_URL: 'https://graph.facebook.com',
   GRAPH_API_VERSION: process.env.INSTAGRAM_GRAPH_API_VERSION || 'v19.0',
   
-  // oEmbed API
+  // OAuth URLs for Instagram Business Login
+  OAUTH_URL: 'https://api.instagram.com/oauth/authorize',
+  TOKEN_URL: 'https://graph.facebook.com/v19.0/oauth/access_token',
+  REFRESH_TOKEN_URL: 'https://graph.facebook.com/v19.0/oauth/access_token',
+  
+  // oEmbed API (still available for public content)
   OEMBED_URL: 'https://graph.facebook.com/v19.0/instagram_oembed',
   
   // App credentials
@@ -25,12 +25,11 @@ const INSTAGRAM_CONFIG = {
   APP_SECRET: process.env.INSTAGRAM_APP_SECRET,
   REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
   
-  // Scopes
-  SCOPES: ['user_profile', 'user_media'].join(','),
+  // Updated scopes for Instagram API with Instagram Login
+  SCOPES: ['instagram_graph_user_profile', 'instagram_graph_user_media'].join(','),
   
   // Rate limits
   RATE_LIMITS: {
-    BASIC_DISPLAY: 200, // per hour
     GRAPH_API: 200, // per hour
     OEMBED: 5000, // per hour
   }
@@ -268,9 +267,9 @@ export class InstagramOAuth {
   }
 
   /**
-   * Exchange authorization code for access token
+   * Exchange authorization code for short-lived access token
    */
-  static async exchangeCodeForToken(code: string): Promise<{ access_token: string; user_id: string }> {
+  static async exchangeCodeForToken(code: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
     const response = await fetch(INSTAGRAM_CONFIG.TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -287,19 +286,62 @@ export class InstagramOAuth {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Token exchange failed: ${error.error_description || error.error}`);
+      throw new Error(`Token exchange failed: ${error.error_description || error.error?.message || 'Unknown error'}`);
     }
 
     return await response.json();
   }
 
   /**
-   * Get user's media using access token
+   * Exchange short-lived token for long-lived token (60 days)
    */
-  static async getUserMedia(accessToken: string): Promise<InstagramMedia[]> {
-    const url = `${INSTAGRAM_CONFIG.BASIC_DISPLAY_API_URL}/me/media`;
+  static async getLongLivedToken(shortLivedToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+    const url = `${INSTAGRAM_CONFIG.GRAPH_API_URL}/${INSTAGRAM_CONFIG.GRAPH_API_VERSION}/oauth/access_token`;
+    
     const params = new URLSearchParams({
-      fields: 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp',
+      grant_type: 'ig_exchange_token',
+      client_secret: INSTAGRAM_CONFIG.APP_SECRET!,
+      access_token: shortLivedToken
+    });
+
+    const response = await fetch(`${url}?${params.toString()}`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Long-lived token exchange failed: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Refresh long-lived token (must be at least 24h old)
+   */
+  static async refreshLongLivedToken(longLivedToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+    const url = `${INSTAGRAM_CONFIG.GRAPH_API_URL}/${INSTAGRAM_CONFIG.GRAPH_API_VERSION}/oauth/access_token`;
+    
+    const params = new URLSearchParams({
+      grant_type: 'ig_refresh_token',
+      access_token: longLivedToken
+    });
+
+    const response = await fetch(`${url}?${params.toString()}`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Token refresh failed: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get Instagram Business Account ID first (required for Graph API)
+   */
+  static async getInstagramBusinessAccountId(accessToken: string): Promise<string> {
+    const url = `${INSTAGRAM_CONFIG.GRAPH_API_URL}/${INSTAGRAM_CONFIG.GRAPH_API_VERSION}/me/accounts`;
+    const params = new URLSearchParams({
+      fields: 'instagram_business_account',
       access_token: accessToken
     });
 
@@ -307,39 +349,104 @@ export class InstagramOAuth {
     
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Failed to fetch user media: ${error.error?.message || response.statusText}`);
+      throw new Error(`Failed to get Instagram Business Account: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
     
-    return data.data.map((item: any) => this.transformUserMediaToInstagramMedia(item));
+    // Find the page with Instagram Business Account
+    const pageWithIG = data.data?.find((page: any) => page.instagram_business_account);
+    
+    if (!pageWithIG?.instagram_business_account?.id) {
+      throw new Error('No Instagram Business Account found. Please ensure your Instagram account is connected to a Facebook Page and is set to Business/Creator.');
+    }
+
+    return pageWithIG.instagram_business_account.id;
   }
 
   /**
-   * Transform Instagram Basic Display API response to our format
+   * Get user's media using Instagram Graph API
    */
-  private static transformUserMediaToInstagramMedia(item: any): InstagramMedia {
+  static async getUserMedia(accessToken: string): Promise<InstagramMedia[]> {
+    try {
+      // First get the Instagram Business Account ID
+      const igUserId = await this.getInstagramBusinessAccountId(accessToken);
+      
+      // Then fetch media using Graph API
+      const url = `${INSTAGRAM_CONFIG.GRAPH_API_URL}/${INSTAGRAM_CONFIG.GRAPH_API_VERSION}/${igUserId}/media`;
+      const params = new URLSearchParams({
+        fields: 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,children{media_url,media_type}',
+        limit: '25',
+        access_token: accessToken
+      });
+
+      const response = await fetch(`${url}?${params.toString()}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to fetch user media: ${error.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      return data.data?.map((item: any) => this.transformGraphAPIMediaToInstagramMedia(item)) || [];
+      
+    } catch (error) {
+      console.error('Error fetching user media:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Transform Instagram Graph API response to our format
+   */
+  private static transformGraphAPIMediaToInstagramMedia(item: any): InstagramMedia {
     const isVideo = item.media_type === 'VIDEO';
+    const isCarousel = item.media_type === 'CAROUSEL_ALBUM';
+    
+    // Handle carousel posts (multiple media items)
+    const downloadUrls = [];
+    
+    if (isCarousel && item.children?.data) {
+      // For carousel posts, include all child media
+      item.children.data.forEach((child: any, index: number) => {
+        const childIsVideo = child.media_type === 'VIDEO';
+        downloadUrls.push({
+          id: `${item.id}_child_${index}`,
+          type: (childIsVideo ? 'video' : 'image') as 'video' | 'image',
+          quality: 'original' as const,
+          url: child.media_url,
+          width: undefined,
+          height: undefined,
+          fileSize: undefined,
+          format: childIsVideo ? 'mp4' : 'jpg',
+          label: `${childIsVideo ? 'Video' : 'Image'} ${index + 1} - Original Quality`
+        });
+      });
+    } else {
+      // Single media item
+      downloadUrls.push({
+        id: `${item.id}_original`,
+        type: (isVideo ? 'video' : 'image') as 'video' | 'image',
+        quality: 'original' as const,
+        url: item.media_url,
+        width: undefined,
+        height: undefined,
+        fileSize: undefined,
+        format: isVideo ? 'mp4' : 'jpg',
+        label: `Original ${isVideo ? 'Video' : 'Image'}`
+      });
+    }
     
     return {
       id: item.id,
-      type: (isVideo ? 'video' : 'image') as 'video' | 'image',
+      type: isCarousel ? 'carousel' : (isVideo ? 'video' : 'image'),
       url: item.permalink,
       thumbnail: item.thumbnail_url || item.media_url,
       caption: item.caption,
       username: undefined, // Would need separate API call to get user info
       displayUrl: item.permalink,
-      downloadUrls: [{
-        id: `${item.id}_original`,
-        type: (isVideo ? 'video' : 'image') as 'video' | 'image',
-        quality: 'original',
-        url: item.media_url,
-        width: undefined, // Not provided by Basic Display API
-        height: undefined,
-        fileSize: undefined,
-        format: isVideo ? 'mp4' : 'jpg',
-        label: `Original ${isVideo ? 'Video' : 'Image'}`
-      }],
+      downloadUrls,
       metadata: {
         width: undefined,
         height: undefined,

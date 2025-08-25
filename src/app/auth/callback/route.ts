@@ -38,29 +38,42 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Exchange code for access token
-    const tokenData = await InstagramOAuth.exchangeCodeForToken(code);
+    // Exchange code for short-lived access token
+    const shortLivedTokenData = await InstagramOAuth.exchangeCodeForToken(code);
+    
+    // Exchange short-lived token for long-lived token (60 days)
+    const longLivedTokenData = await InstagramOAuth.getLongLivedToken(shortLivedTokenData.access_token);
     
     // In a real application, you would:
-    // 1. Store the access token securely (encrypted in database)
-    // 2. Associate it with the user's session
-    // 3. Set up token refresh logic
+    // 1. Store the long-lived access token securely (encrypted in database)
+    // 2. Associate it with the user's session/account
+    // 3. Set up automatic token refresh (before 60 days)
+    // 4. Store token expiry time for refresh scheduling
     
-    // For this demo, we'll redirect to a success page with limited token info
+    // For this demo, we'll redirect to a success page
     const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/auth/success?user_id=${tokenData.user_id}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/auth/success?token_type=long_lived&expires_in=${longLivedTokenData.expires_in}`
     );
     
     // Clear the state cookie
     response.cookies.delete('instagram_oauth_state');
     
-    // In production, store access token securely
+    // In production, store access token securely in database
     // For demo purposes only - DO NOT store tokens in cookies in production!
-    response.cookies.set('instagram_demo_token', tokenData.access_token, {
+    response.cookies.set('instagram_demo_token', longLivedTokenData.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 3600 // 1 hour for demo
+      maxAge: longLivedTokenData.expires_in || 5184000 // 60 days default
+    });
+    
+    // Store token expiry for refresh logic
+    const expiryDate = new Date(Date.now() + (longLivedTokenData.expires_in * 1000));
+    response.cookies.set('instagram_token_expiry', expiryDate.toISOString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: longLivedTokenData.expires_in || 5184000
     });
     
     return response;

@@ -8,7 +8,8 @@ import Link from 'next/link';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const userId = searchParams.get('user_id');
+  const tokenType = searchParams.get('token_type');
+  const expiresIn = searchParams.get('expires_in');
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 text-center">
@@ -21,10 +22,15 @@ function SuccessContent() {
           Your Instagram account has been connected to InstaSave. You can now download your own Instagram content.
         </p>
         
-        {userId && (
+        {tokenType && (
           <div className="bg-white/5 rounded-lg p-4 mb-6">
-            <p className="text-white/70 text-sm mb-2">Connected Account:</p>
-            <p className="text-white font-mono">User ID: {userId}</p>
+            <p className="text-white/70 text-sm mb-2">Connection Details:</p>
+            <p className="text-white font-mono">Token Type: {tokenType}</p>
+            {expiresIn && (
+              <p className="text-white/70 text-sm mt-1">
+                Expires in: {Math.round(parseInt(expiresIn) / 86400)} days
+              </p>
+            )}
           </div>
         )}
         
@@ -44,7 +50,14 @@ function SuccessContent() {
           </Link>
         </div>
         
-        <div className="mt-8 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+        <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-blue-200 text-sm">
+            <strong>Updated API:</strong> You're now using the new Instagram API with Instagram Login. 
+            Your long-lived token is valid for 60 days and will auto-refresh.
+          </p>
+        </div>
+
+        <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
           <p className="text-yellow-200 text-sm">
             <strong>Note:</strong> This demo stores your access token temporarily. 
             In a production app, tokens would be stored securely and encrypted.

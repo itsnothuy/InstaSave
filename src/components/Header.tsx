@@ -27,7 +27,7 @@ export default function Header() {
               href="/private" 
               className="text-white/90 hover:text-white transition-colors duration-200"
             >
-              Private Downloader
+              Instagram Private Downloader
             </Link>
             <Link 
               href="/help" 
@@ -72,7 +72,7 @@ export default function Header() {
                 className="text-white/90 hover:text-white transition-colors duration-200"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Private Downloader
+                Instagram Private Downloader
               </Link>
               <Link 
                 href="/help" 

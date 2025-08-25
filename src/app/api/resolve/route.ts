@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidInstagramURL, normalizeInstagramURL } from '@/lib/utils';
 import { InstagramResolver, InstagramAPIError, RateLimitError, ContentNotFoundError, PrivateContentError } from '@/lib/instagram';
+import { RealInstagramResolver, InstagramRealAPIError, InstagramRateLimitError } from '@/lib/instagram-real';
 import { InstagramMedia, ApiResponse } from '@/types';
 
 export async function POST(request: NextRequest) {
@@ -33,13 +34,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve the Instagram content
-    const media = await InstagramResolver.resolve(normalizedUrl, {
-      includeMetadata: true,
-      includeThumbnails: true,
-      maxQuality: 'original',
-      timeout: 15000
-    });
+    // Try to resolve using real Instagram API first, fallback to demo
+    let media: InstagramMedia;
+    
+    try {
+      // Check if Instagram API credentials are configured
+      if (process.env.INSTAGRAM_APP_ID && process.env.INSTAGRAM_APP_SECRET) {
+        console.log('Using real Instagram API');
+        media = await RealInstagramResolver.getPublicPostData(normalizedUrl);
+      } else {
+        console.log('Instagram API not configured, using demo data');
+        media = await InstagramResolver.resolve(normalizedUrl, {
+          includeMetadata: true,
+          includeThumbnails: true,
+          maxQuality: 'original',
+          timeout: 15000
+        });
+      }
+    } catch (realApiError) {
+      console.warn('Real Instagram API failed, falling back to demo:', realApiError);
+      
+      // Fallback to demo resolver
+      media = await InstagramResolver.resolve(normalizedUrl, {
+        includeMetadata: true,
+        includeThumbnails: true,
+        maxQuality: 'original',
+        timeout: 15000
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -51,7 +73,7 @@ export async function POST(request: NextRequest) {
     console.error('Resolve API error:', error);
 
     // Handle specific Instagram API errors
-    if (error instanceof RateLimitError) {
+    if (error instanceof RateLimitError || error instanceof InstagramRateLimitError) {
       return NextResponse.json(
         { 
           success: false, 
@@ -84,7 +106,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (error instanceof InstagramAPIError) {
+    if (error instanceof InstagramAPIError || error instanceof InstagramRealAPIError) {
       return NextResponse.json(
         { 
           success: false, 

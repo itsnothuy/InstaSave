@@ -47,7 +47,21 @@ export default function PrivacyPolicy() {
             We comply with GDPR, CCPA, and other applicable privacy regulations.
           </p>
 
-          <h2>6. Contact Information</h2>
+          <h2 id="data-deletion">6. Data Deletion</h2>
+          <p>
+            You can request deletion of your data at any time:
+          </p>
+          <ul>
+            <li>Revoke app access through your Instagram account settings</li>
+            <li>Contact us at privacy@instasave.app for manual data deletion</li>
+            <li>All authorization tokens are automatically expired per Instagram's guidelines</li>
+          </ul>
+          <p>
+            We do not permanently store your personal data or Instagram content. 
+            Most data is processed in real-time and not retained.
+          </p>
+
+          <h2>7. Contact Information</h2>
           <p>
             For privacy concerns, contact us at: privacy@instasave.app
           </p>

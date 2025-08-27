@@ -11,6 +11,25 @@ A modern, responsive web application for downloading Instagram photos, videos, r
 - **Modern UI**: Clean, intuitive interface inspired by popular downloaders
 - **Free to Use**: No registration required, completely free
 
+## 📸 Demo Screenshots
+
+### Step 1: Main Page
+![InstaSave Main Page](https://github.com/user-attachments/assets/instasave-main-page.png)
+
+*Clean, modern interface with Instagram URL input field and beautiful gradient background*
+
+### Step 2: Enter Instagram URL
+![InstaSave with URL Input](https://github.com/user-attachments/assets/instasave-url-input.png)
+
+*Simply paste any Instagram post, reel, or story URL to get started*
+
+### Step 3: Download Options
+![InstaSave Download Results](https://github.com/user-attachments/assets/instasave-download-options.png)
+
+*Choose from multiple quality options and download formats for your content*
+
+> **Live Demo**: [https://insta-save-y49p.vercel.app](https://insta-save-y49p.vercel.app)
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15 with App Router

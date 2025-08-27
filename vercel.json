@@ -1,9 +1,9 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "devCommand": "npm run dev",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -13,22 +13,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/instagram-downloader",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/instagram-video-downloader",
-      "destination": "/",
-      "permanent": true
-    }
-  ],
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }

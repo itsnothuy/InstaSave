@@ -46,7 +46,7 @@ export class InstagramResolver {
   }
 
   /**
-   * Extracts shortcode from Instagram URL
+   * Extracts shortcode from Instagram URL or username from profile URL
    */
   private static extractShortcode(url: string): string | null {
     try {
@@ -58,6 +58,7 @@ export class InstagramResolver {
         /\/p\/([A-Za-z0-9_-]+)/, // Regular posts
         /\/reel\/([A-Za-z0-9_-]+)/, // Reels
         /\/tv\/([A-Za-z0-9_-]+)/, // IGTV
+        /\/stories\/([A-Za-z0-9_.-]+)\/[0-9]+/, // Stories
       ];
 
       for (const pattern of patterns) {
@@ -65,6 +66,12 @@ export class InstagramResolver {
         if (match) {
           return match[1];
         }
+      }
+
+      // Handle profile URLs (e.g., /username/)
+      const profileMatch = path.match(/^\/([A-Za-z0-9_.-]+)\/?$/);
+      if (profileMatch) {
+        return profileMatch[1]; // Return username as identifier
       }
 
       return null;
@@ -79,6 +86,7 @@ export class InstagramResolver {
    */
   private static createMockMedia(url: string, shortcode: string, maxQuality: string): InstagramMedia {
     const isVideo = url.includes('/reel/') || url.includes('/tv/');
+    const isProfile = url.match(/^https?:\/\/[^\/]+\/[A-Za-z0-9_.-]+\/?$/);
     const baseWidth = 1080;
     const baseHeight = 1080;
 
@@ -90,7 +98,7 @@ export class InstagramResolver {
         id: `${shortcode}_high`,
         type: (isVideo ? 'video' : 'image') as 'video' | 'image',
         quality: 'high' as const,
-        url: `https://picsum.photos/${baseWidth}/${baseHeight}?random=${shortcode}`,
+        url: `https://picsum.photos/1080/1080.jpg?random=instasave_high_${shortcode}`,
         width: baseWidth,
         height: baseHeight,
         fileSize: isVideo ? 5242880 : 524288, // 5MB for video, 512KB for image
@@ -104,7 +112,7 @@ export class InstagramResolver {
         id: `${shortcode}_medium`,
         type: (isVideo ? 'video' : 'image') as 'video' | 'image',
         quality: 'medium' as const,
-        url: `https://picsum.photos/${Math.floor(baseWidth * 0.67)}/${Math.floor(baseHeight * 0.67)}?random=${shortcode}`,
+        url: `https://picsum.photos/720/720.jpg?random=instasave_medium_${shortcode}`,
         width: Math.floor(baseWidth * 0.67),
         height: Math.floor(baseHeight * 0.67),
         fileSize: isVideo ? 2621440 : 262144, // 2.5MB for video, 256KB for image
@@ -118,7 +126,7 @@ export class InstagramResolver {
       id: `${shortcode}_low`,
       type: (isVideo ? 'video' : 'image') as 'video' | 'image',
       quality: 'low' as const,
-      url: `https://picsum.photos/${Math.floor(baseWidth * 0.44)}/${Math.floor(baseHeight * 0.44)}?random=${shortcode}`,
+      url: `https://picsum.photos/480/480.jpg?random=instasave_low_${shortcode}`,
       width: Math.floor(baseWidth * 0.44),
       height: Math.floor(baseHeight * 0.44),
       fileSize: isVideo ? 1048576 : 131072, // 1MB for video, 128KB for image
@@ -126,11 +134,35 @@ export class InstagramResolver {
       label: `Low Quality ${isVideo ? 'Video' : 'Image'} (${Math.floor(baseWidth * 0.44)}x${Math.floor(baseHeight * 0.44)})`
     });
 
+    // Handle profile URLs differently
+    if (isProfile) {
+      return {
+        id: shortcode,
+        type: 'carousel' as const,
+        url: url,
+        thumbnail: `https://picsum.photos/400/400.jpg?random=instasave_thumb_${shortcode}`,
+        caption: `Demo profile content for @${shortcode}. This shows the profile's latest posts. In production, this would display actual profile content and allow bulk download options.`,
+        username: shortcode,
+        displayUrl: url,
+        downloadUrls: qualityOptions.map((option, index) => ({
+          ...option,
+          id: `${shortcode}_profile_${index}`,
+          label: `Profile Content ${index + 1} - ${option.quality} Quality`
+        })),
+        metadata: {
+          width: baseWidth,
+          height: baseHeight,
+          duration: undefined,
+          fileSize: qualityOptions[0]?.fileSize || 524288
+        }
+      };
+    }
+
     return {
       id: shortcode,
       type: (isVideo ? 'video' : 'image') as 'video' | 'image',
       url: url,
-      thumbnail: `https://picsum.photos/400/400?random=${shortcode}`,
+      thumbnail: `https://picsum.photos/400/400.jpg?random=instasave_thumb_${shortcode}`,
       caption: `Demo content for ${shortcode}. This is a demo version of InstaSave. In production, real Instagram content would be displayed here.`,
       username: 'demo_user',
       displayUrl: url,

@@ -51,7 +51,7 @@ export default function URLInput({ onSubmit, loading = false }: URLInputProps) {
               setError("");
             }}
             placeholder="Paste Instagram URL here..."
-            className="w-full px-4 py-4 text-lg rounded-lg border border-gray-300 bg-white/95 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+            className="w-full px-4 py-4 text-lg rounded-lg border border-gray-300 bg-white/95 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-black"
             disabled={loading}
           />
           

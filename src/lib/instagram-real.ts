@@ -50,6 +50,112 @@ export class RealInstagramResolver {
     }
 
     try {
+      // Check if this is a profile URL (like Snapinsta handles)
+      const isProfileUrl = this.isProfileUrl(url);
+      
+      if (isProfileUrl) {
+        return await this.getPublicProfileData(url);
+      } else {
+        return await this.getPublicSinglePostData(url);
+      }
+      
+    } catch (error) {
+      console.error('Failed to fetch Instagram content:', error);
+      throw new Error(`Unable to fetch Instagram content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Check if URL is a profile URL
+   */
+  private static isProfileUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      const path = parsedUrl.pathname;
+      
+      // Profile URL pattern: /username/ (not post, reel, etc.)
+      const profilePattern = /^\/([A-Za-z0-9_.-]+)\/?$/;
+      return profilePattern.test(path);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get profile data (like Snapinsta - multiple recent posts)
+   */
+  private static async getPublicProfileData(url: string): Promise<InstagramMedia> {
+    try {
+      // Extract username from URL
+      const username = this.extractUsernameFromUrl(url);
+      if (!username) {
+        throw new Error('Invalid Instagram profile URL');
+      }
+
+      // For now, simulate profile response like Snapinsta
+      // Real implementation would use Instagram API to fetch user's recent posts
+      return {
+        id: username,
+        type: 'carousel' as const,
+        url: url,
+        thumbnail: `https://picsum.photos/400/400.jpg?random=instasave_thumb_${username}`,
+        caption: `Profile content for @${username}. Like Snapinsta, this would fetch the latest 10 posts from this profile. Currently in demo mode - configure Instagram API for real profile fetching.`,
+        username: username,
+        displayUrl: url,
+        downloadUrls: [
+          {
+            id: `${username}_recent_1`,
+            type: 'image' as const,
+            quality: 'high' as const,
+            url: `https://picsum.photos/1080/1080.jpg?random=instasave_high_${username}`,
+            width: 1080,
+            height: 1080,
+            fileSize: 524288,
+            format: 'jpg',
+            label: `Recent Post 1 - High Quality`
+          },
+          {
+            id: `${username}_recent_2`,
+            type: 'image' as const,
+            quality: 'medium' as const,
+            url: `https://picsum.photos/720/720.jpg?random=instasave_medium_${username}`,
+            width: 720,
+            height: 720,
+            fileSize: 262144,
+            format: 'jpg',
+            label: `Recent Post 2 - Medium Quality`
+          },
+          {
+            id: `${username}_recent_3`,
+            type: 'image' as const,
+            quality: 'low' as const,
+            url: `https://picsum.photos/480/480.jpg?random=instasave_low_${username}`,
+            width: 480,
+            height: 480,
+            fileSize: 131072,
+            format: 'jpg',
+            label: `Recent Post 3 - Low Quality`
+          }
+        ],
+        metadata: {
+          width: 1080,
+          height: 1080,
+          duration: undefined,
+          fileSize: 524288
+        }
+      };
+      
+    } catch (error) {
+      console.error('Failed to fetch Instagram profile content:', error);
+      throw new Error(`Unable to fetch Instagram profile content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get single post data from Instagram
+   */
+  private static async getPublicSinglePostData(url: string): Promise<InstagramMedia> {
+    try {
       // Get app access token for oEmbed API
       const appAccessToken = await this.getAppAccessToken();
       
@@ -60,8 +166,23 @@ export class RealInstagramResolver {
       return this.parseOEmbedResponse(oembedData, url);
       
     } catch (error) {
-      console.error('Failed to fetch Instagram content:', error);
-      throw new Error(`Unable to fetch Instagram content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to fetch Instagram post content:', error);
+      throw new Error(`Unable to fetch Instagram post content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Extract username from profile URL
+   */
+  private static extractUsernameFromUrl(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url);
+      const path = parsedUrl.pathname;
+      
+      const match = path.match(/^\/([A-Za-z0-9_.-]+)\/?$/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
     }
   }
 

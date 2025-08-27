@@ -14,17 +14,17 @@ A modern, responsive web application for downloading Instagram photos, videos, r
 ## 📸 Demo Screenshots
 
 ### Step 1: Main Page
-![InstaSave Main Page](https://github.com/user-attachments/assets/instasave-main-page.png)
+![InstaSave Main Page](./assets/instasave-main-page.png)
 
 *Clean, modern interface with Instagram URL input field and beautiful gradient background*
 
 ### Step 2: Enter Instagram URL
-![InstaSave with URL Input](https://github.com/user-attachments/assets/instasave-url-input.png)
+![InstaSave with URL Input](./assets/instasave-url-input.png)
 
 *Simply paste any Instagram post, reel, or story URL to get started*
 
 ### Step 3: Download Options
-![InstaSave Download Results](https://github.com/user-attachments/assets/instasave-download-options.png)
+![InstaSave Download Results](./assets/instasave-download-options.png)
 
 *Choose from multiple quality options and download formats for your content*
 

@@ -1,4 +1,5 @@
 # InstaSave - Instagram Photo & Video Downloader
+![InstaSave ICON](./assets/icon.png)
 
 A modern, responsive web application for downloading Instagram photos, videos, reels, and stories. Built with Next.js 15, TypeScript, and Tailwind CSS.
 
